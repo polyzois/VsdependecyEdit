@@ -144,6 +144,10 @@
     <Compile Include="SimpleTracer.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Editor.html" />
+    <Content Include="Content\sampledata.js" />
+    <Content Include="Content\underscore.js" />
+    <Content Include="Content\underscore.string.js" />
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="Web.config" />
