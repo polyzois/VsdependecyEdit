@@ -30,25 +30,21 @@
 
 
 <script type="text/javascript"
-        src="http://cloud.github.com/downloads/SteveSanderson/knockout/knockout-2.2.0.debug.js"></script>
+        src="../Scripts/knockout-2.2.0.debug.js"></script>
 
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.2.js"></script>
+<script type="text/javascript" src="../Scripts/jquery-1.8.2.js"></script>
 <script type="text/javascript" src="underscore.js"></script>
 <script type="text/javascript" src="underscore.string.js"></script>
-<script type="text/javascript" src="sampledata.js"></script>
+<!-- <script type="text/javascript" src="sampledata.js"></script> -->
 <script type="text/javascript">
 
-    var myDataFromServer = { refs: JSON.parse(fromSever)  };
-
-
-
-    var myData = function (serverModel) {
+    var MyData = function () {
         var self = this;
         this.projfilter = ko.observable("");
         this.reffilter = ko.observable("");
 
 
-        this.refsold = ko.observableArray(_.map(serverModel.refs, function(ref){ return new projRef(ref,self) })  );
+        this.refsold = ko.observableArray( );
 
         this.refs = ko.computed(function () {
 
@@ -71,46 +67,60 @@
             }
         };
 
-        this.submitUpdates = function(){
-           var needUpdate = _.filter(self.refs(),function(aRef){
+        this.submitUpdates = function() {
+            var needUpdate = _.filter(self.refs(), function(aRef) {
                 return aRef.dirty;
-            }).map(function(aRef){ return { name:aRef.name, ref:aRef.refSimple() } });
+            }).map(function(aRef) { return { name: aRef.name, ref: aRef.refSimple() } });
             console.log(ko.toJSON(needUpdate));
             return needUpdate;
-        }
+        };
+
+        this.populateFromServer = function(newRefs) {
+            self.refsold.push.apply(self.refsold, _.map(newRefs, function(ref) { return new ProjRef(ref, self); }));
+
+        };
     };
 
-    var projRef = function(serverModel ,parent ){
-        var self=this;
-        this.name=serverModel.Name;
-        this.dirty=false;
-        this.refSimple= ko.observable(serverModel.Ref);
-        this.ref=ko.computed( {read:function(){
+    var ProjRef = function(serverModel, parent) {
+        var self = this;
+        this.name = serverModel.Name;
+        this.dirty = false;
+        this.refSimple = ko.observable(serverModel.Ref);
+        this.ref = ko.computed({
+            read: function() {
 
-            return self.refSimple();
-        },
-        write: function(newVal) {
-                parent.edit(self,newVal);
-        }});
+                return self.refSimple();
+            },
+            write: function(newVal) {
+                parent.edit(self, newVal);
+            }
+        });
 
-        this.editMode= ko.observable(false);
+        this.editMode = ko.observable(false);
 
-        this.edit= function(){
-            console.log(self," was clicked");
+        this.edit = function() {
+            console.log(self, " was clicked");
             self.editMode(true);
-        }
+        };
 
-        this.changeRef= function(newVal){
+        this.changeRef = function(newVal) {
             self.refSimple(newVal);
-            self.dirty=true;
-        }
+            self.dirty = true;
+        };
 
 
-    }
+    };
 
 
-    var viewModel = new myData(myDataFromServer);
+    var viewModel = new MyData();
     ko.applyBindings(viewModel);
+
+
+    jQuery.getJSON("../api/refs", function (data) {
+        console.log(data);
+        viewModel.populateFromServer(data);
+    });
+
 
 </script>
 
