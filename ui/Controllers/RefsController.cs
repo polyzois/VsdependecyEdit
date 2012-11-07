@@ -19,7 +19,8 @@ namespace ui.Controllers
         // POST api/values
         public ProjRef[] Post([FromBody] ProjRef[] updates)
         {
-
+            var parser = new ProjRefs() { initialDir = @"C:\dragon\dropbox" };
+            parser.Change(updates);
             return updates;
         }
 

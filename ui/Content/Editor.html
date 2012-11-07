@@ -71,7 +71,7 @@
             var needUpdate = _.filter(self.refs(), function(aRef) {
                 return aRef.dirty;
             }).map(function(aRef) {
-                 return { name: aRef.name, ref: aRef.refSimple(), oldref: aRef.loadedValue };
+                return { ProjectName: aRef.name, ref: aRef.refSimple(), oldref: aRef.loadedValue };
             });
             console.log(ko.toJSON(needUpdate));
             return needUpdate;
@@ -85,7 +85,7 @@
 
     var ProjRef = function(serverModel, parent) {
         var self = this;
-        this.name = serverModel.Name;
+        this.name = serverModel.ProjectName;
         this.dirty = false;
         this.loadedValue = serverModel.Ref;
         this.refSimple = ko.observable(serverModel.Ref);
