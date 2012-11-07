@@ -63,14 +63,16 @@
         this.edit = function(ref , value){
             ref.changeRef(value)
             if(self.multieditor()){
-                _.each(self.refs(),function(aRef){  aRef.changeRef(value)  });
+                _.each(self.refs(), function (aRef) { aRef.changeRef(value); });
             }
         };
 
         this.submitUpdates = function() {
             var needUpdate = _.filter(self.refs(), function(aRef) {
                 return aRef.dirty;
-            }).map(function(aRef) { return { name: aRef.name, ref: aRef.refSimple() } });
+            }).map(function(aRef) {
+                 return { name: aRef.name, ref: aRef.refSimple(), oldref: aRef.loadedValue };
+            });
             console.log(ko.toJSON(needUpdate));
             return needUpdate;
         };
@@ -85,6 +87,7 @@
         var self = this;
         this.name = serverModel.Name;
         this.dirty = false;
+        this.loadedValue = serverModel.Ref;
         this.refSimple = ko.observable(serverModel.Ref);
         this.ref = ko.computed({
             read: function() {
