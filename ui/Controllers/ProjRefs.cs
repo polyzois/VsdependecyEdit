@@ -97,8 +97,13 @@ namespace ui.Controllers
         private static ProjRef CreateRef(string projFile, XElement hintPath)
         {
             var path = Path.GetDirectoryName(projFile) + "\\" + hintPath.Value;
-            Log.Debug("lib exists " + path + File.Exists(path));
-            var projRef = new ProjRef {ProjectName = projFile, Ref = hintPath.Value, FileExists = File.Exists(path)};
+            var fileExists = File.Exists(path);
+            Log.Debug("lib exists " + path + fileExists);
+            if (!fileExists)
+            {
+                fileExists = File.Exists(hintPath.Value);
+            }
+            var projRef = new ProjRef {ProjectName = projFile, Ref = hintPath.Value, FileExists = fileExists};
             return projRef;
         }
 

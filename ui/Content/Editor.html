@@ -7,11 +7,13 @@
             background-color: rgba(245, 11, 11, 0.71)
         }
     </style>
+     <link href="jquery-ui-1.9.1.custom.css" rel="stylesheet">
 </head>
 <body>
-
+  
 <label>filter Projects <input type="text" data-bind="value:projfilter, valueUpdate: 'afterkeydown'"></label>
-<br> <label>filter References <input type="text" data-bind="value:reffilter, valueUpdate: 'afterkeydown'"></label>
+    <br> <label>filter References <input type="text" data-bind="value:reffilter, valueUpdate: 'afterkeydown'"></label>
+    autocomplete: <input id="auto" data-bind="jqAuto: { autoFocus: true }, jqAutoSource: allRefs, jqAutoValue: reffilter,  jqAutoSourceValue: 'refSimple'" />
 <br>
 <label>multieditor <input type="checkbox" data-bind="checked: multieditor"> </label>
 <br> <input type="button"  data-bind="click:submitUpdates" value="Submit changes" >
@@ -25,7 +27,9 @@
         <td data-bind="text:ref, click:edit ,css:{red:!fileExists}"></td>
         <!-- /ko -->
         <!-- ko if: editMode() -->
-        <td data-bind=""> <input type="text"  data-bind="value:ref, hasfocus:editMode" > </td>
+        <td > 
+            <input type="text" size="80" data-bind=" jqAuto: { autoFocus: true }, jqAutoSource: $parent.libs, jqAutoValue: ref,  jqAutoSourceValue: 'Name'" />
+        </td>
         <!-- /ko -->
        
     </tr>
@@ -40,8 +44,10 @@
 <script type="text/javascript" src="../Scripts/jquery-1.8.2.js"></script>
 <script type="text/javascript" src="underscore.js"></script>
 <script type="text/javascript" src="underscore.string.js"></script>
-<script type="text/javascript" src="../Scripts/utils.js"></script> 
-<script type="text/javascript">
+     <script type="text/javascript" src="../Scripts/utils.js"></script> 
+     <script type="text/javascript" src="../Scripts/knockout-autocomplete.js"></script> 
+    <script type="text/javascript" src="../Scripts/jquery-ui-1.9.1.custom.js"></script>
+     <script type="text/javascript">
 
     var MyData = function (actionUrl) {
         var self = this;
@@ -49,7 +55,9 @@
         this.reffilter = ko.observable("");
 
 
-        this.allRefs = ko.observableArray( );
+        this.allRefs = ko.observableArray();
+
+        this.libs = ko.observableArray();
 
         this.refs = ko.computed(function () {
 
@@ -65,15 +73,20 @@
 
         this.multieditor=ko.observable(true);
 
-        this.edit = function(ref , value){
-            ref.changeRef(value)
-            if(self.multieditor()){
-                _.each(self.refs(), function (aRef) { aRef.changeRef(value); });
+        this.edit = function(ref , value) {
+           if (null == value) {
+               console.log("Null value supplied");
+               return;
+           }
+            if (self.multieditor()) {
+                _.each(self.refs(), function(aRef) { aRef.changeRef(value); });
+            } else {
+                ref.changeRef(value);
             }
         };
 
         this.submitUpdates = function() {
-            var needUpdate = _.filter(self.refs(), function(aRef) {
+            var needUpdate = _.filter(self.allRefs(), function(aRef) {
                 return aRef.dirty;
             });
 
@@ -87,14 +100,18 @@
             console.log(ko.toJSON(needUpdate));
             
             $.jsonPost(actionUrl, ko.toJSON(needUpdate), self.populateFromServer, self);
-            return fasle;
+            return false;
         };
-        
         
 
         this.populateFromServer = function (newRefs) {
             console.log(newRefs.length, "number of elements");
             self.allRefs.push.apply(self.allRefs, _.map(newRefs, function(ref) { return new ProjRef(ref, self); }));
+        };
+        
+        this.populateLibs = function (libs) {
+            console.log(libs.length, "number of libs");
+            self.libs.push.apply(self.libs, libs);
         };
     };
 
@@ -123,7 +140,8 @@
             self.editMode(true);
         };
 
-        this.changeRef = function(newVal) {
+        this.changeRef = function (newVal) {
+            console.log("change ref", newVal, self.refSimple(), self.shortName);
             self.refSimple(newVal);
             self.dirty = true;
         };
@@ -131,16 +149,24 @@
 
     };
 
-    var actionUrl = "../api/refs";
+    var project = "?initialDir=C:\\dragon\\NewsSubmission\\git_dev";
+
+    var actionUrl = "../api/refs" + project;
+
+    var libUrl = "../api/Packages" + project;
 
     var viewModel = new MyData(actionUrl);
     ko.applyBindings(viewModel);
     
     jQuery.getJSON(actionUrl, function (data) {
-        console.log(data);
+       // console.log(data);
         viewModel.populateFromServer(data);
     });
 
+    jQuery.getJSON(libUrl, function (data) {
+      //  console.log(data);
+        viewModel.populateLibs(data);
+    });
 
 </script>
 
