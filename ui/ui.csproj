@@ -136,6 +136,8 @@
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\Library.cs" />
+    <Compile Include="Controllers\PackagesController.cs" />
     <Compile Include="Controllers\ProjRef.cs" />
     <Compile Include="Controllers\ProjRefs.cs" />
     <Compile Include="Controllers\RefsController.cs" />

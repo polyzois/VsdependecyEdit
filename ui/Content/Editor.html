@@ -10,7 +10,7 @@
      <link href="jquery-ui-1.9.1.custom.css" rel="stylesheet">
 </head>
 <body>
-  
+  <label>Project root dir:<input type="text" data-bind="value:project" size="80"/></label><br/>
 <label>filter Projects <input type="text" data-bind="value:projfilter, valueUpdate: 'afterkeydown'"></label>
     <br> <label>filter References <input type="text" data-bind="value:reffilter, valueUpdate: 'afterkeydown'"></label>
     autocomplete: <input id="auto" data-bind="jqAuto: { autoFocus: true }, jqAutoSource: allRefs, jqAutoValue: reffilter,  jqAutoSourceValue: 'refSimple'" />
@@ -49,11 +49,12 @@
     <script type="text/javascript" src="../Scripts/jquery-ui-1.9.1.custom.js"></script>
      <script type="text/javascript">
 
-    var MyData = function (actionUrl) {
+     var MyData = function (projectUrl, libUrl) {
         var self = this;
         this.projfilter = ko.observable("");
         this.reffilter = ko.observable("");
 
+        this.project = ko.observable("");
 
         this.allRefs = ko.observableArray();
 
@@ -99,7 +100,7 @@
             });
             console.log(ko.toJSON(needUpdate));
             
-            $.jsonPost(actionUrl, ko.toJSON(needUpdate), self.populateFromServer, self);
+            $.jsonPost(projectUrl+self.project(), ko.toJSON(needUpdate), self.populateFromServer, self);
             return false;
         };
         
@@ -113,7 +114,31 @@
             console.log(libs.length, "number of libs");
             self.libs.push.apply(self.libs, libs);
         };
-    };
+
+        this.ChangeProject = function () {
+            console.log("project changed", self.project());
+            self.Clear();
+            jQuery.jsonGet(projectUrl+self.project(), function(data) {
+                // console.log(data);
+                viewModel.populateFromServer(data);
+            },self);
+
+            jQuery.getJSON(libUrl+self.project(), function(data) {
+                //  console.log(data);
+                viewModel.populateLibs(data);
+            },self);
+        };
+             
+        this.project.subscribe(this.ChangeProject);
+
+         this.Clear = function() {
+             self.allRefs([]);
+             self.libs([]);
+             self.reffilter("");
+             self.projfilter("");
+         };
+
+     };
 
     var ProjRef = function(serverModel, parent) {
         var self = this;
@@ -149,24 +174,18 @@
 
     };
 
-    var project = "?initialDir=C:\\dragon\\NewsSubmission\\git_dev";
+    var project = "C:\\dragon\\NewsSubmission\\git_dev";
 
-    var actionUrl = "../api/refs" + project;
+    var actionUrl = "../api/refs?initialDir=" ;
 
-    var libUrl = "../api/Packages" + project;
+    var libUrl = "../api/Packages?initialDir=";
 
-    var viewModel = new MyData(actionUrl);
+    var viewModel = new MyData(actionUrl,libUrl);
+    viewModel.project(project);
+
     ko.applyBindings(viewModel);
     
-    jQuery.getJSON(actionUrl, function (data) {
-       // console.log(data);
-        viewModel.populateFromServer(data);
-    });
-
-    jQuery.getJSON(libUrl, function (data) {
-      //  console.log(data);
-        viewModel.populateLibs(data);
-    });
+   
 
 </script>
 
