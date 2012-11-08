@@ -6,10 +6,8 @@ namespace ui.Controllers
 {
     public class RefsController : ApiController
     {
-
         protected static readonly ILog Log = LogManager.GetLogger(typeof (RefsController));
-
-        // GET api/values
+       
         public ProjRef[] Get([FromUri] string initialDir)
         {
 
@@ -19,9 +17,8 @@ namespace ui.Controllers
 
             return parser.GetAllRefs();
         }
-       
 
-        // POST api/values
+       
         public ProjRef[] Post([FromBody] ProjRef[] updates, [FromUri] string initialDir)
         {
             var parser = new ProjRefs() { initialDir = initialDir };

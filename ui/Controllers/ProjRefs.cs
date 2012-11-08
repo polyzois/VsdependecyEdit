@@ -16,6 +16,35 @@ namespace ui.Controllers
 
         public string initialDir { get; set; }
 
+        public ProjRef[] Add(ProjRef[] newRefs)
+        {
+            XDocument doc = null;
+            List<ProjRef> allRefs = new List<ProjRef>();
+
+            foreach (var projRef in newRefs)
+            {
+                Log.Debug("handling " + projRef);
+                doc = XDocument.Load(projRef.ProjectName);
+
+                var refGroup = doc.Root.Descendants(_ns + "Reference").FirstOrDefault().Parent;
+
+                var refName = Path.GetFileNameWithoutExtension(projRef.Ref);
+
+                refGroup.AddFirst(new XElement(_ns + "Reference",new XAttribute("Include",refName),
+                                          new XElement(_ns + "HintPath",
+                                                 projRef.Ref
+                                              )
+                                      ));
+
+                Log.Debug(refGroup);
+
+              //  allRefs.Add(CreateRef(projRef.ProjectName, xmlRef));
+
+                doc.Save(projRef.ProjectName);
+
+            }
+            return allRefs.ToArray();
+        }
 
         public ProjRef[] Change(ProjRef[] changes)
         {
@@ -129,6 +158,6 @@ namespace ui.Controllers
         }
 
 
-      
+       
     }
 }

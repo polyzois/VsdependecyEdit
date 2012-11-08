@@ -15,7 +15,9 @@ namespace ui.Controllers
             var libraries = new List<Library>();
             foreach (var lib in libs)
             {
-                libraries.Add(new Library(){Name = lib});
+               var relativePath = ".." + lib.Substring(initialDir.Length);
+
+                libraries.Add(new Library(){Name = relativePath});
             }
             return libraries;
         }
