@@ -1,7 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-
+    <style type="text/css">
+        .red {
+            background-color: #f59999;
+            background-color: rgba(245, 11, 11, 0.71)
+        }
+    </style>
 </head>
 <body>
 
@@ -14,15 +19,15 @@
 <table>
     <tbody data-bind="foreach: refs">
     <tr>
-        <td data-bind="text:name"></td>
+        <td data-bind="text:shortName"></td>
 
         <!-- ko ifnot: editMode() -->
-        <td data-bind="text:ref, click:edit"></td>
+        <td data-bind="text:ref, click:edit ,css:{red:!fileExists}"></td>
         <!-- /ko -->
         <!-- ko if: editMode() -->
-        <td data-bind=""> <input type="text"  data-bind="value:ref, hasfocus:editMode, valueUpdate: 'afterkeydown'" > </td>
+        <td data-bind=""> <input type="text"  data-bind="value:ref, hasfocus:editMode" > </td>
         <!-- /ko -->
-
+       
     </tr>
     </tbody>
 
@@ -35,22 +40,22 @@
 <script type="text/javascript" src="../Scripts/jquery-1.8.2.js"></script>
 <script type="text/javascript" src="underscore.js"></script>
 <script type="text/javascript" src="underscore.string.js"></script>
-<!-- <script type="text/javascript" src="sampledata.js"></script> -->
+<script type="text/javascript" src="../Scripts/utils.js"></script> 
 <script type="text/javascript">
 
-    var MyData = function () {
+    var MyData = function (actionUrl) {
         var self = this;
         this.projfilter = ko.observable("");
         this.reffilter = ko.observable("");
 
 
-        this.refsold = ko.observableArray( );
+        this.allRefs = ko.observableArray( );
 
         this.refs = ko.computed(function () {
 
             console.log("Filter using ", self.projfilter(), self.reffilter());
 
-            return _.filter(self.refsold(),function (aRef) {
+            return _.filter(self.allRefs(),function (aRef) {
                 return _.str.isBlank(self.projfilter()) || _.str.contains(aRef.name, self.projfilter());
             }).filter(function (aRef) {
                         return _.str.isBlank(self.reffilter()) || _.str.contains(aRef.ref(), self.reffilter());
@@ -70,25 +75,37 @@
         this.submitUpdates = function() {
             var needUpdate = _.filter(self.refs(), function(aRef) {
                 return aRef.dirty;
-            }).map(function(aRef) {
-                return { ProjectName: aRef.name, ref: aRef.refSimple(), oldref: aRef.loadedValue };
+            });
+
+
+            self.allRefs.removeAll(needUpdate);
+            
+
+            needUpdate = _.map(needUpdate, function (aRef) {
+                return { ProjectName: aRef.name, newRef: aRef.refSimple(), ref: aRef.loadedValue };
             });
             console.log(ko.toJSON(needUpdate));
-            return needUpdate;
+            
+            $.jsonPost(actionUrl, ko.toJSON(needUpdate), self.populateFromServer, self);
+            return fasle;
         };
+        
+        
 
-        this.populateFromServer = function(newRefs) {
-            self.refsold.push.apply(self.refsold, _.map(newRefs, function(ref) { return new ProjRef(ref, self); }));
-
+        this.populateFromServer = function (newRefs) {
+            console.log(newRefs.length, "number of elements");
+            self.allRefs.push.apply(self.allRefs, _.map(newRefs, function(ref) { return new ProjRef(ref, self); }));
         };
     };
 
     var ProjRef = function(serverModel, parent) {
         var self = this;
         this.name = serverModel.ProjectName;
+        this.shortName = _.str.strRightBack(serverModel.ProjectName, "\\");
         this.dirty = false;
         this.loadedValue = serverModel.Ref;
         this.refSimple = ko.observable(serverModel.Ref);
+        this.fileExists = serverModel.FileExists;
         this.ref = ko.computed({
             read: function() {
 
@@ -114,12 +131,12 @@
 
     };
 
+    var actionUrl = "../api/refs";
 
-    var viewModel = new MyData();
+    var viewModel = new MyData(actionUrl);
     ko.applyBindings(viewModel);
-
-
-    jQuery.getJSON("../api/refs", function (data) {
+    
+    jQuery.getJSON(actionUrl, function (data) {
         console.log(data);
         viewModel.populateFromServer(data);
     });

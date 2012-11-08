@@ -17,28 +17,35 @@ namespace ui.Controllers
         public string initialDir { get; set; }
 
 
-        public void Change(ProjRef[] changes)
+        public ProjRef[] Change(ProjRef[] changes)
         {
             XDocument doc = null;
+            List<ProjRef> allRefs = new List<ProjRef>();
+
             foreach (var projRef in changes)
             {
+                Log.Debug("handling "+projRef);
                 doc = XDocument.Load(projRef.ProjectName);
                 IEnumerable<XElement> result = (from refs in doc.Root.Descendants(_ns + "Reference")
                                                 let element = refs.Element(_ns + "HintPath")
-                                                where element != null && testExpr(element.Value, projRef.OldRef)
+                                                where element != null && testExpr(element.Value, projRef.Ref)
                                                 select element);
-                Trace.Assert(result.Count()==1,"Expected exactly one match "+projRef);
+                if(result.Count()!=1)
+                {
+                    throw new Exception("Expected exactly one match "+projRef) ;
+                }
 
                 var xmlRef = result.SingleOrDefault();
                 Log.Debug("value before "+xmlRef.Value);
-                xmlRef.Value = projRef.Ref;
+                xmlRef.Value = projRef.NewRef;
                 Log.Debug("value after "+xmlRef.Value);
-                
-               
+
+                allRefs.Add(CreateRef(projRef.ProjectName,xmlRef));
 
                 doc.Save(projRef.ProjectName);
 
             }
+            return allRefs.ToArray();
         }
 
         public ProjRef[] GetAllRefs()
@@ -46,13 +53,28 @@ namespace ui.Controllers
 
             var projFiles = ProjFiles();
 
+           return  GetRefsInternal(projFiles);
+        }
+
+        public ProjRef[] GetRefs(ProjRef[] updates)
+        {
+           var projFiles= new List<string>();
+            foreach (var projRef in updates)
+            {
+                projFiles.Add(projRef.ProjectName);
+            }
+            return GetRefsInternal(projFiles.ToArray());
+        }
+
+        private ProjRef[] GetRefsInternal(string[] projFiles)
+        {
             XDocument doc = null;
 
-            List<ProjRef> allRefs= new List<ProjRef>();
+            List<ProjRef> allRefs = new List<ProjRef>();
 
             foreach (var projFile in projFiles)
             {
-                Console.WriteLine(projFile);
+               Log.Debug(projFile);
                 doc = XDocument.Load(projFile);
 
                 IEnumerable<XElement> result = (from refs in doc.Root.Descendants(_ns + "Reference")
@@ -64,12 +86,20 @@ namespace ui.Controllers
 
                 foreach (XElement hintPath in result)
                 {
-                    allRefs.Add(new ProjRef{ProjectName = projFile,Ref = hintPath.Value});
+                    var projRef = CreateRef(projFile, hintPath);
+                    allRefs.Add(projRef);
                 }
-
             }
 
             return allRefs.ToArray();
+        }
+
+        private static ProjRef CreateRef(string projFile, XElement hintPath)
+        {
+            var path = Path.GetDirectoryName(projFile) + "\\" + hintPath.Value;
+            Log.Debug("lib exists " + path + File.Exists(path));
+            var projRef = new ProjRef {ProjectName = projFile, Ref = hintPath.Value, FileExists = File.Exists(path)};
+            return projRef;
         }
 
         private string[] ProjFiles()
@@ -93,6 +123,7 @@ namespace ui.Controllers
             return value.ToUpperInvariant().Contains(oldRef.ToUpperInvariant());
         }
 
-        
+
+      
     }
 }

@@ -9,7 +9,7 @@ namespace ui.Controllers
         public ProjRef[] Get()
         {
 
-            var parser = new ProjRefs() {initialDir = @"C:\dragon\dropbox"};
+            var parser = new ProjRefs() { initialDir = @"C:\dragon\NewsSubmission\git_dev" };
 
             return parser.GetAllRefs();
         }
@@ -20,8 +20,8 @@ namespace ui.Controllers
         public ProjRef[] Post([FromBody] ProjRef[] updates)
         {
             var parser = new ProjRefs() { initialDir = @"C:\dragon\dropbox" };
-            parser.Change(updates);
-            return updates;
+           return  parser.Change(updates);
+           
         }
 
         

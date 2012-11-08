@@ -23,7 +23,7 @@ namespace ui
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
 
-            GlobalConfiguration.Configuration.Services.Replace(typeof(ITraceWriter), new SimpleTracer());
+         //   GlobalConfiguration.Configuration.Services.Replace(typeof(ITraceWriter), new SimpleTracer());
 
             var formatters = GlobalConfiguration.Configuration.Formatters;
 
