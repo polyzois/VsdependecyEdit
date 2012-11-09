@@ -19,31 +19,43 @@ namespace ui.Controllers
         public ProjRef[] Add(ProjRef[] newRefs)
         {
             XDocument doc = null;
-            List<ProjRef> allRefs = new List<ProjRef>();
+            List<ProjRef> addedRefs = new List<ProjRef>();
 
             foreach (var projRef in newRefs)
             {
+                if (!CheckExistance(projRef.ProjectName, projRef.Ref))
+                {
+                    Log.Debug("Path not found skipping " + projRef);
+                    continue;
+                }
                 Log.Debug("handling " + projRef);
                 doc = XDocument.Load(projRef.ProjectName);
 
-                var refGroup = doc.Root.Descendants(_ns + "Reference").FirstOrDefault().Parent;
 
                 var refName = Path.GetFileNameWithoutExtension(projRef.Ref);
 
+               if (FindExistingReference(doc, refName).Any())
+               {
+                   Log.Debug("ref (name) already exists "+refName +" in "+projRef.ProjectName);
+                   continue;
+               }
+               
+
+               var refGroup = doc.Root.Descendants(_ns + "Reference").FirstOrDefault().Parent;
+
+                var hintPath = new XElement(_ns + "HintPath", projRef.Ref);
                 refGroup.AddFirst(new XElement(_ns + "Reference",new XAttribute("Include",refName),
-                                          new XElement(_ns + "HintPath",
-                                                 projRef.Ref
-                                              )
+                                          hintPath
                                       ));
 
                 Log.Debug(refGroup);
 
-              //  allRefs.Add(CreateRef(projRef.ProjectName, xmlRef));
+                addedRefs.Add(CreateResult(projRef.ProjectName, hintPath.Value));
 
                 doc.Save(projRef.ProjectName);
 
             }
-            return allRefs.ToArray();
+            return addedRefs.ToArray();
         }
 
         public ProjRef[] Change(ProjRef[] changes)
@@ -53,12 +65,16 @@ namespace ui.Controllers
 
             foreach (var projRef in changes)
             {
+                if (!CheckExistance(projRef.ProjectName, projRef.NewRef))
+                {
+                    Log.Debug("Path not found skipping " + projRef);
+                    allRefs.Add(projRef);
+                    continue;
+                }
                 Log.Debug("handling "+projRef);
                 doc = XDocument.Load(projRef.ProjectName);
-                IEnumerable<XElement> result = (from refs in doc.Root.Descendants(_ns + "Reference")
-                                                let element = refs.Element(_ns + "HintPath")
-                                                where element != null && testExpr(element.Value, projRef.Ref)
-                                                select element);
+                var referenceName = Path.GetFileNameWithoutExtension(projRef.Ref);
+                IEnumerable<XElement> result =  FindExistingReference(doc, referenceName);
                 if(result.Count()!=1)
                 {
                     throw new Exception("Expected exactly one match "+projRef) ;
@@ -69,12 +85,20 @@ namespace ui.Controllers
                 xmlRef.Value = projRef.NewRef;
                 Log.Debug("value after "+xmlRef.Value);
 
-                allRefs.Add(CreateRef(projRef.ProjectName,xmlRef));
+                allRefs.Add(CreateResult(projRef.ProjectName, xmlRef.Value));
 
                 doc.Save(projRef.ProjectName);
 
             }
             return allRefs.ToArray();
+        }
+
+        private IEnumerable<XElement> FindExistingReference(XDocument doc, string referenceName)
+        {
+            return (from refs in doc.Root.Descendants(_ns + "Reference")
+                    let element = refs.Element(_ns + "HintPath")
+                    where element != null && ContainsCaseInsensitive(refs.Attribute("Include").Value, referenceName)
+                    select element);
         }
 
         public ProjRef[] GetAllRefs()
@@ -108,14 +132,14 @@ namespace ui.Controllers
 
                 IEnumerable<XElement> result = (from refs in doc.Root.Descendants(_ns + "Reference")
                                                 let element = refs.Element(_ns + "HintPath")
-                                                where element != null //&& testExpr(element.Value)
+                                                where element != null
                                                 select element);
 
                
 
                 foreach (XElement hintPath in result)
                 {
-                    var projRef = CreateRef(projFile, hintPath);
+                    var projRef = CreateResult(projFile, hintPath.Value);
                     allRefs.Add(projRef);
                 }
             }
@@ -123,17 +147,23 @@ namespace ui.Controllers
             return allRefs.ToArray();
         }
 
-        private static ProjRef CreateRef(string projFile, XElement hintPath)
+        private static ProjRef CreateResult(string projFile, string referenceHintPath)
         {
-            var path = Path.GetDirectoryName(projFile) + "\\" + hintPath.Value;
+            var fileExists = CheckExistance(projFile, referenceHintPath);
+            var projRef = new ProjRef {ProjectName = projFile, Ref = referenceHintPath, FileExists = fileExists};
+            return projRef;
+        }
+
+        private static bool CheckExistance(string projFile, string referenceHintPath)
+        {
+            var path = Path.GetDirectoryName(projFile) + "\\" + referenceHintPath;
             var fileExists = File.Exists(path);
             Log.Debug("lib exists " + path + fileExists);
             if (!fileExists)
             {
-                fileExists = File.Exists(hintPath.Value);
+                fileExists = File.Exists(referenceHintPath);
             }
-            var projRef = new ProjRef {ProjectName = projFile, Ref = hintPath.Value, FileExists = fileExists};
-            return projRef;
+            return fileExists;
         }
 
         private string[] ProjFiles()
@@ -152,7 +182,7 @@ namespace ui.Controllers
             return filtered.ToArray();
         }
 
-        private bool testExpr(string value, string oldRef)
+        private bool ContainsCaseInsensitive(string value, string oldRef)
         {
             return value.ToUpperInvariant().Contains(oldRef.ToUpperInvariant());
         }

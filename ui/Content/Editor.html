@@ -11,12 +11,16 @@
 </head>
 <body>
   <label>Project root dir:<input type="text" data-bind="value:project" size="80"/></label><br/>
-<label>filter Projects <input type="text" data-bind="value:projfilter, valueUpdate: 'afterkeydown'"></label>
-    <br> <label>filter References <input type="text" data-bind="value:reffilter, valueUpdate: 'afterkeydown'"></label>
-    autocomplete: <input id="auto" data-bind="jqAuto: { autoFocus: true }, jqAutoSource: allRefs, jqAutoValue: reffilter,  jqAutoSourceValue: 'refSimple'" />
-<br>
-<label>multieditor <input type="checkbox" data-bind="checked: multieditor"> </label>
-<br> <input type="button"  data-bind="click:submitUpdates" value="Submit changes" >
+<label>Filter projects <input data-bind="jqAuto: { autoFocus: true }, jqAutoSource: allRefsUniqueProj, jqAutoValue: projfilter,  jqAutoSourceValue: 'shortName', jqAutoFreeText: true" /></label>
+    <br> <label>
+    Filter references<input  data-bind="jqAuto: { autoFocus: true }, jqAutoSource: allRefsUniqueLib, jqAutoValue: reffilter,  jqAutoSourceValue: 'refSimple', jqAutoFreeText: true" /></label>
+    <br>
+    Add new reference (to all visible projects) <input  data-bind="jqAuto: { autoFocus: true }, jqAutoSource: libs, jqAutoValue: newRef,  jqAutoSourceValue: 'Name' , jqAutoFreeText: true" />
+    <input type="button"  data-bind="click:AddNewRef" value="Add Reference" >
+    <br/>
+    <label>multieditor (edit all visible simultaneously) <input type="checkbox" data-bind="checked: multieditor"> </label>
+     
+<br> <input type="button"  data-bind="click:submitUpdates" value="Submit Updates" >
 
 <table>
     <tbody data-bind="foreach: refs">
@@ -28,7 +32,7 @@
         <!-- /ko -->
         <!-- ko if: editMode() -->
         <td > 
-            <input type="text" size="80" data-bind=" jqAuto: { autoFocus: true }, jqAutoSource: $parent.libs, jqAutoValue: ref,  jqAutoSourceValue: 'Name'" />
+            <input type="text" size="80" data-bind=" jqAuto: { autoFocus: true }, jqAutoSource: $parent.libs, jqAutoValue: ref,  jqAutoSourceValue: 'Name',jqAutoFreeText: true" />
         </td>
         <!-- /ko -->
        
@@ -49,14 +53,25 @@
     <script type="text/javascript" src="../Scripts/jquery-ui-1.9.1.custom.js"></script>
      <script type="text/javascript">
 
-     var MyData = function (projectUrl, libUrl) {
+     var MyData = function (projectUrl, libUrl,addRefurl) {
         var self = this;
         this.projfilter = ko.observable("");
+
         this.reffilter = ko.observable("");
 
         this.project = ko.observable("");
 
-        this.allRefs = ko.observableArray();
+         this.newRef = ko.observable("");
+
+         this.allRefs = ko.observableArray();
+
+         this.allRefsUniqueProj = ko.computed(function() {
+             return _.uniq(self.allRefs(),false ,function (ref) { return ref.shortName; });
+         });
+         
+         this.allRefsUniqueLib = ko.computed(function () {
+             return _.uniq(self.allRefs(), false, function (ref) { return ref.refSimple(); });
+         });
 
         this.libs = ko.observableArray();
 
@@ -131,13 +146,28 @@
              
         this.project.subscribe(this.ChangeProject);
 
-         this.Clear = function() {
+        this.Clear = function() {
              self.allRefs([]);
              self.libs([]);
              self.reffilter("");
              self.projfilter("");
          };
 
+
+         this.newRefPath = ko.observable("");
+
+         this.AddNewRef = function() {
+             var newRefs = _.uniq(self.refs(), false, function(val) {
+                  return val.name;
+             }).map(function(aRef) {
+                 return { ProjectName: aRef.name, ref: self.newRef() };
+             });
+             console.log("new refs", ko.toJSON(newRefs));
+             $.jsonPost(addRefurl + self.project(), ko.toJSON(newRefs), self.populateFromServer, self);
+             return false;
+         };
+         
+         
      };
 
     var ProjRef = function(serverModel, parent) {
@@ -179,8 +209,10 @@
     var actionUrl = "../api/refs?initialDir=" ;
 
     var libUrl = "../api/Packages?initialDir=";
+    
+    var addRefUrl = "../api/AddRef?initialDir=";
 
-    var viewModel = new MyData(actionUrl,libUrl);
+    var viewModel = new MyData(actionUrl,libUrl,addRefUrl);
     viewModel.project(project);
 
     ko.applyBindings(viewModel);

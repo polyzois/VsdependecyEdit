@@ -11,6 +11,7 @@ ko.bindingHandlers.jqAuto = {
                 unwrap = ko.utils.unwrapObservable,
                 modelValue = allBindings.jqAutoValue,
                 source = allBindings.jqAutoSource,
+                allowFreetext = allBindings.jqAutoFreeText  || false,
                 valueProp = allBindings.jqAutoSourceValue,
                 inputValueProp = allBindings.jqAutoSourceInputValue || valueProp,
                 labelProp = allBindings.jqAutoSourceLabel || valueProp;
@@ -32,16 +33,16 @@ ko.bindingHandlers.jqAuto = {
         };
 
         //on a change, make sure that it is a valid value or clear out the model value
-        options.change = function (event, ui) {
+        options.change = function(event, ui) {
             var currentValue = $(element).val();
-            var matchingItem = ko.utils.arrayFirst(unwrap(source), function (item) {
+            var matchingItem = ko.utils.arrayFirst(unwrap(source), function(item) {
                 return unwrap(item[inputValueProp]) === currentValue;
             });
-
-            if (!matchingItem) {
-                writeValueToModel(null);
+            console.log("autocomplete", "no match", allowFreetext);
+            if (!matchingItem ) {
+                writeValueToModel(allowFreetext?currentValue:null);
             }
-        }
+        };
 
 
         //handle the choices being updated in a DO, to decouple value updates from source (options) updates
