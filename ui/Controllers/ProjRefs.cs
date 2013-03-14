@@ -77,6 +77,7 @@ namespace ui.Controllers
                 IEnumerable<XElement> result =  FindExistingReference(doc, referenceName);
                 if(result.Count()!=1)
                 {
+                    Log.Info("Found " + result.Count() + " result, which was unexepcted");
                     throw new Exception("Expected exactly one match "+projRef) ;
                 }
 
@@ -97,7 +98,7 @@ namespace ui.Controllers
         {
             return (from refs in doc.Root.Descendants(_ns + "Reference")
                     let element = refs.Element(_ns + "HintPath")
-                    where element != null && ContainsCaseInsensitive(refs.Attribute("Include").Value, referenceName)
+                    where element != null && StartsWith(refs.Attribute("Include").Value, referenceName)
                     select element);
         }
 
@@ -182,12 +183,15 @@ namespace ui.Controllers
             return filtered.ToArray();
         }
 
-        private bool ContainsCaseInsensitive(string value, string oldRef)
+        private bool EqualsCaseInsensitive(string value, string oldRef)
         {
-            return value.ToUpperInvariant().Contains(oldRef.ToUpperInvariant());
+            return value.ToUpperInvariant().Equals(oldRef.ToUpperInvariant());
         }
 
-
+        private bool StartsWith(string value, string oldRef)
+        {
+            return value.ToUpperInvariant().StartsWith(oldRef.ToUpperInvariant());
+        }
        
     }
 }
