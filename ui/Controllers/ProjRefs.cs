@@ -102,6 +102,14 @@ namespace ui.Controllers
                     select element);
         }
 
+        private IEnumerable<XElement> FindExistingReferenceByHint(XDocument doc, string referenceName)
+        {
+            return (from refs in doc.Root.Descendants(_ns + "Reference")
+                    let element = refs.Element(_ns + "HintPath")
+                    where element != null && StartsWith(element.Value, referenceName)
+                    select element);
+        }
+
         public ProjRef[] GetAllRefs()
         {
 
@@ -192,6 +200,24 @@ namespace ui.Controllers
         {
             return value.ToUpperInvariant().StartsWith(oldRef.ToUpperInvariant());
         }
-       
+
+        public void Delete(ProjRef deleteMe)
+        {
+            XDocument doc = XDocument.Load(deleteMe.ProjectName);
+
+            IEnumerable<XElement> result = FindExistingReferenceByHint(doc, deleteMe.Ref);
+            if (result.Count() != 1)
+            {
+                Log.Info("Found " + result.Count() + " result, which was unexepcted");
+                throw new Exception("Expected exactly one match " + deleteMe.Ref);
+            }
+
+            var xmlRef = result.SingleOrDefault();
+            var theRef = xmlRef.Parent;
+            theRef.Remove();
+
+
+            doc.Save(deleteMe.ProjectName);
+        }
     }
 }

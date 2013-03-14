@@ -24,19 +24,20 @@
 
 <table>
     <tbody data-bind="foreach: refs">
-    <tr>
-        <td data-bind="text:shortName"></td>
+        <tr>
+            <td data-bind="click:$parent.deleteMe">Delete</td>
+            <td data-bind="text:shortName"></td>
 
-        <!-- ko ifnot: editMode() -->
-        <td data-bind="text:ref, click:edit ,css:{red:!fileExists}"></td>
-        <!-- /ko -->
-        <!-- ko if: editMode() -->
-        <td > 
-            <input type="text" size="80" data-bind=" jqAuto: { autoFocus: true }, jqAutoSource: $parent.libs, jqAutoValue: ref,  jqAutoSourceValue: 'Name',jqAutoFreeText: true" />
-        </td>
-        <!-- /ko -->
+            <!-- ko ifnot: editMode() -->
+            <td data-bind="text:ref, click:edit ,css:{red:!fileExists}"></td>
+            <!-- /ko -->
+            <!-- ko if: editMode() -->
+            <td > 
+                <input type="text" size="80" data-bind=" jqAuto: { autoFocus: true }, jqAutoSource: $parent.libs, jqAutoValue: ref,  jqAutoSourceValue: 'Name',jqAutoFreeText: true" />
+            </td>
+            <!-- /ko -->
        
-    </tr>
+        </tr>
     </tbody>
 
 </table>
@@ -53,7 +54,7 @@
     <script type="text/javascript" src="../Scripts/jquery-ui-1.9.1.custom.js"></script>
      <script type="text/javascript">
 
-     var MyData = function (projectUrl, libUrl,addRefurl) {
+         var MyData = function (projectUrl, libUrl, addRefurl, deleteRefUrl) {
         var self = this;
         this.projfilter = ko.observable("");
 
@@ -100,6 +101,19 @@
                 ref.changeRef(value);
             }
         };
+         
+        this.deleteMe = function (aRef) {
+            console.log("Me", ko.toJSON(aRef));
+            
+            var needUpdate =  { ProjectName: aRef.name, newRef: aRef.refSimple(), ref: aRef.loadedValue };
+           
+
+            $.jsonPost(deleteRefUrl + self.project(), ko.toJSON(needUpdate)).done(function(data) {
+                console.log(data);
+                self.allRefs.remove(aRef);
+            });
+        };
+
 
         this.submitUpdates = function() {
             var needUpdate = _.filter(self.allRefs(), function(aRef) {
@@ -194,6 +208,8 @@
             console.log(self, " was clicked");
             self.editMode(true);
         };
+        
+       
 
         this.changeRef = function (newVal) {
             console.log("change ref", newVal, self.refSimple(), self.shortName);
@@ -211,8 +227,10 @@
     var libUrl = "../api/Packages?initialDir=";
     
     var addRefUrl = "../api/AddRef?initialDir=";
+    
+    var deleteRefUrl = "../api/DeleteRef?initialDir=";
 
-    var viewModel = new MyData(actionUrl,libUrl,addRefUrl);
+    var viewModel = new MyData(actionUrl,libUrl,addRefUrl,deleteRefUrl);
     viewModel.project(project);
 
     ko.applyBindings(viewModel);
